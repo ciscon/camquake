@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "image.h"
 
 #ifdef WITH_PNG
-#include "png.h"
+#include <png.h>
 /*#ifdef _WIN32
 #pragma comment(lib, "libs/libpng.lib")
 #endif*/
@@ -734,7 +734,7 @@ byte *Image_LoadPNG (vfsfile_t *fin, const char *filename, int matchwidth, int m
 		return NULL;
 	}
 
-	if (setjmp(png_ptr->jmpbuf)) {
+	if (setjmp(png_jmpbuf(png_ptr))) {
 		qpng_destroy_read_struct(&png_ptr, &pnginfo, NULL);
 #ifndef WITH_FTE_VFS
 		fclose(fin);
@@ -1158,7 +1158,7 @@ png_data *Image_LoadPNG_All (vfsfile_t *fin, const char *filename, int matchwidt
 
 	// Set the return adress that PNGLib should return to if
 	// an error occurs during reading.
-	if (setjmp(png_ptr->jmpbuf)) 
+	if (png_jmpbuf(png_ptr)) 
 	{
 		png_destroy_read_struct(&png_ptr, &pnginfo, NULL);
 #ifndef WITH_FTE_VFS
@@ -1507,7 +1507,7 @@ int Image_WritePNG (char *filename, int compression, byte *pixels, int width, in
 		return false;
 	}
 
-	if (setjmp(png_ptr->jmpbuf)) {
+	if (setjmp(png_jmpbuf(png_ptr))) {
 		png_destroy_write_struct(&png_ptr, &info_ptr);
 #ifndef WITH_FTE_VFS
 		fclose(fp);
@@ -1598,7 +1598,7 @@ int Image_WritePNGPLTE (char *filename, int compression,
 		return false;
 	}
 
-	if (setjmp(png_ptr->jmpbuf)) {
+	if (setjmp(png_jmpbuf(png_ptr))) {
 		png_destroy_write_struct(&png_ptr, &info_ptr);
 #ifndef WITH_FTE_VFS
 		fclose(fp);
