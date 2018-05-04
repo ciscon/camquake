@@ -100,14 +100,14 @@ int64_t 	(*ffm_av_rescale_q)			(int64_t a, AVRational bq, AVRational cq);
 /* libavcodec */
 struct lib_functions libavcodec_functions[] =
 	{
-	{	"avcodec_init",	(void *)&ffm_avcodec_init},
+	//{	"avcodec_init",	(void *)&ffm_avcodec_init},
 	{	"avcodec_register_all", (void *)&ffm_avcodec_register_all},
-	{	"avcodec_encode_video", (void *)&ffm_avcodec_encode_video},
-	{	"avcodec_encode_audio", (void *)&ffm_avcodec_encode_audio},
+	{	"avcodec_encode_video2", (void *)&ffm_avcodec_encode_video},
+	{	"avcodec_encode_audio2", (void *)&ffm_avcodec_encode_audio},
 	{	"avcodec_find_encoder_by_name", (void *)&ffm_avcodec_find_encoder_by_name},
 	{	"av_codec_next", (void *)&ffm_av_codec_next},
-	{	"avcodec_alloc_frame", (void *)&ffm_avcodec_alloc_frame},
-	{	"avcodec_open", (void *)&ffm_avcodec_open},
+	{	"av_frame_alloc", (void *)&ffm_avcodec_alloc_frame},
+	{	"avcodec_open2", (void *)&ffm_avcodec_open},
 	{	"avcodec_close", (void *)&ffm_avcodec_close},
 	{	"avcodec_find_encoder", (void *)&ffm_avcodec_find_encoder},
 	{	"avpicture_get_size", (void *)&ffm_avpicture_get_size},
@@ -129,17 +129,18 @@ struct lib_functions libswscale_functions[] =
 struct lib_functions libavformat_functions[] =
 	{
 	{	"av_oformat_next", (void *)&ffm_av_oformat_next},
-	{	"url_fopen", (void *)&ffm_url_fopen},
-	{	"url_fclose", (void *)&ffm_url_fclose},
+	{	"avio_open", (void *)&ffm_url_fopen},
+	{	"avio_close", (void *)&ffm_url_fclose},
 	{	"av_register_all", (void *)&ffm_av_register_all},
 	{	"av_write_frame", (void *)&ffm_av_write_frame},
-	{	"av_write_header", (void *)&ffm_av_write_header},
+	{	"avformat_write_header", (void *)&ffm_av_write_header},
 	{	"av_init_packet", (void *)&ffm_av_init_packet},
-	{	"av_set_parameters", (void *)&ffm_av_set_parameters},
-	{	"av_alloc_format_context", (void *)&ffm_avformat_alloc_context},
-	{	"dump_format", (void *)&ffm_dump_format},
+	//{	"av_set_parameters", (void *)&ffm_av_set_parameters},
+	{	"avformat_alloc_context", (void *)&ffm_avformat_alloc_context},
+	{	"av_dump_format", (void *)&ffm_dump_format},
 	{	"av_write_trailer", (void *)&ffm_av_write_trailer},
-	{	"av_new_stream", (void *)&ffm_av_new_stream},
+	//{	"av_new_stream", (void *)&ffm_av_new_stream},
+	{	"avformat_new_stream", (void *)&ffm_av_new_stream},
 	{	"av_find_default_stream_index", (void *)&ffm_av_find_default_stream_index},
 	{	"av_interleaved_write_frame", (void *)&ffm_av_interleaved_write_frame},
 	{	"av_codec_get_id", (void *)&ffm_av_codec_get_id},
@@ -965,7 +966,8 @@ void FFM_Record_Start_f (void)
 
 	ffm_dump_format(ffm->format_context, 0, ffm->filename, 1);
 
-	if (ffm_av_set_parameters(ffm->format_context, NULL) < 0 )
+    //no longer used, we do this directly with ffm_av_write_header now
+	/*if (ffm_av_set_parameters(ffm->format_context, NULL) < 0 )
 	{
 		Com_Printf("FFM: parameter error\n");
 		if (ffm->record_audio)
@@ -974,7 +976,7 @@ void FFM_Record_Start_f (void)
 		free(ffm->output_buffer);
 		free(ffm->gl_buffer);
 		return;
-	}
+	}*/
 	
 	if (!(ffm->output_format->flags & AVFMT_NOFILE))
 	{
@@ -1259,7 +1261,7 @@ void FFM_Init(void)
 		return;
 	}
 	
-	ffm_avcodec_init();
+	//ffm_avcodec_init();
 
 	ffm_avcodec_register_all();
 
