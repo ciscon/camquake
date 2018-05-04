@@ -9,13 +9,14 @@
 
 #include "libavcodec/avcodec.h"
 #include "libavformat/avformat.h"
+#include "libavutil/pixfmt.h"
 #include "libswscale/swscale.h"
 
 
 // not cool
 typedef struct AVCodecTag
 {
-	enum CodecID id;
+	enum AVCodecID id;
 	unsigned int tag;
 } AVCodecTag;
 
@@ -64,32 +65,32 @@ AVFrame *	(*ffm_avcodec_alloc_frame)		(void);
 int		(*ffm_avpicture_alloc)			(AVPicture *picture, int pix_fmt, int width, int height);
 int		(*ffm_avcodec_open)			(AVCodecContext *avctx, AVCodec *codec);
 int 		(*ffm_avcodec_close)			(AVCodecContext *avctx);
-AVCodec *	(*ffm_avcodec_find_encoder)		(enum CodecID id);
+AVCodec *	(*ffm_avcodec_find_encoder)		(enum AVCodecID id);
 int		(*ffm_avpicture_get_size)		(int pix_fmt, int width, int height);
 int		(*ffm_avpicture_fill)			(AVPicture *picture, uint8_t *ptr, int pix_fmt, int width, int height);
 
 /* libswsscale */
 int 		(*ffm_sws_scale)				(struct SwsContext *context, uint8_t* srcSlice[], int srcStride[], int srcSliceY, int srcSliceH, uint8_t* dst[], int dstStride[]);
-struct SwsContext *(*ffm_sws_getContext)				(int srcW, int srcH, enum PixelFormat srcFormat, int dstW, int dstH, enum PixelFormat dstFormat, int flags, SwsFilter *srcFilter, SwsFilter *dstFilter, double *param);
+struct SwsContext *(*ffm_sws_getContext)				(int srcW, int srcH, enum AVPixelFormat srcFormat, int dstW, int dstH, enum AVPixelFormat dstFormat, int flags, SwsFilter *srcFilter, SwsFilter *dstFilter, double *param);
 
 
 /* libavformat */
 AVOutputFormat *	(*ffm_av_oformat_next)			(AVOutputFormat *f);
-int 			(*ffm_url_fopen)			(ByteIOContext **s, const char *filename, int flags);
-int 			(*ffm_url_fclose)			(ByteIOContext *s);
+int 			(*ffm_url_fopen)			(AVIOContext **s, const char *filename, int flags);
+int 			(*ffm_url_fclose)			(AVIOContext *s);
 void			(*ffm_av_register_all)			(void);
 int			(*ffm_av_write_frame)			(AVFormatContext *s, AVPacket *pkt);
 int			(*ffm_av_write_header)			(AVFormatContext *s);
 void			(*ffm_av_init_packet)			(AVPacket *pkt);
-int			(*ffm_av_set_parameters)		(AVFormatContext *s, AVFormatParameters *ap);
+int			(*ffm_av_set_parameters)		(AVFormatContext *s, AVCodecParameters *ap);
 AVFormatContext *	(*ffm_avformat_alloc_context)		(void);
 void 			(*ffm_dump_format)			(AVFormatContext *ic, int index, const char *url, int is_output);
 int			(*ffm_av_write_trailer)			(AVFormatContext *s);
 AVStream *		(*ffm_av_new_stream)			(AVFormatContext *s, int id);
 int 			(*ffm_av_find_default_stream_index)	(AVFormatContext *s);
 int			(*ffm_av_interleaved_write_frame)		(AVFormatContext *s, AVPacket *pkt);
-enum CodecID           (*ffm_av_codec_get_id)                  (const struct AVCodecTag **tags, unsigned int tag);
-unsigned int           (*ffm_av_codec_get_tag)                 (const struct AVCodecTag **tags, enum CodecID id);
+enum AVCodecID           (*ffm_av_codec_get_id)                  (const struct AVCodecTag **tags, unsigned int tag);
+unsigned int           (*ffm_av_codec_get_tag)                 (const struct AVCodecTag **tags, enum AVCodecID id);
 
 /* libavutil */
 void 			(*ffm_av_log_set_callback)	(void (*)(void*, int, const char*, va_list));
@@ -364,7 +365,7 @@ int FFM_Encode_Frame(struct frames_list_s *f, struct SwsContext *img_convert_con
 #ifdef GLQUAKE
 	applyHWGamma(ffm->gl_swap_buffer, dwidth * dheight * 3);
 #endif
-	ffm_avpicture_fill((AVPicture *) ffm->gl_picture, ffm->gl_swap_buffer, PIX_FMT_RGB24,  dwidth, dheight);
+	ffm_avpicture_fill((AVPicture *) ffm->gl_picture, ffm->gl_swap_buffer, AV_PIX_FMT_RGB24,  dwidth, dheight);
 	ffm_sws_scale(img_convert_context, ffm->gl_picture->data, ffm->gl_picture->linesize, 0, dheight, ffm->picture->data, ffm->picture->linesize);
 
 #ifdef _WIN32
@@ -376,7 +377,7 @@ out_size = ffm_avcodec_encode_video(ffm->video_codec_context, ffm->output_buffer
 	
 	if (ffm->video_codec_context->coded_frame->key_frame)
 	{
-		ffm->packet.flags |= PKT_FLAG_KEY;
+		ffm->packet.flags |= AV_PKT_FLAG_KEY;
 	}
 
 	ffm->packet.stream_index = ffm->video_stream->index;
@@ -384,7 +385,7 @@ out_size = ffm_avcodec_encode_video(ffm->video_codec_context, ffm->output_buffer
 	ffm->packet.size = out_size;
 
 	printf("%i %i\n", ffm->video_stream->time_base.num, ffm->video_stream->time_base.den);
-	printf("%i %i %s\n", CODEC_TYPE_VIDEO, ffm->video_stream->codec->codec_type, ffm->video_stream->codec->codec->name);
+	printf("%i %i %s\n", AVMEDIA_TYPE_VIDEO, ffm->video_stream->codec->codec_type, ffm->video_stream->codec->codec->name);
 	printf("packet_size: %i\n", ffm->packet.size);
 	fflush(stdout);
 	ffm_av_interleaved_write_frame(ffm->format_context, &ffm->packet);
@@ -401,7 +402,7 @@ out_size = ffm_avcodec_encode_video(ffm->video_codec_context, ffm->output_buffer
 			ffm->audio_packet.pts = ffm_av_rescale_q(ffm->audio_stream->codec->coded_frame->pts, ffm->audio_stream->codec->time_base, ffm->audio_stream->time_base);
 		}
 
-		ffm->audio_packet.flags |= PKT_FLAG_KEY;
+		ffm->audio_packet.flags |= AV_PKT_FLAG_KEY;
 		ffm->audio_packet.stream_index = ffm->audio_stream->index;
 		ffm->audio_packet.data = ffm->audio_output_buffer;
 
@@ -420,7 +421,7 @@ void FFM_Encode(void)
 
 	if (img_convert_context == NULL)
 	{
-		img_convert_context = ffm_sws_getContext(dwidth, dheight, PIX_FMT_RGB24, (int)ffm_video_width.value, (int)ffm_video_height.value, PIX_FMT_YUV420P, SWS_BICUBIC, NULL, NULL, NULL);
+		img_convert_context = ffm_sws_getContext(dwidth, dheight, AV_PIX_FMT_RGB24, (int)ffm_video_width.value, (int)ffm_video_height.value, AV_PIX_FMT_YUV420P, SWS_BICUBIC, NULL, NULL, NULL);
 		if (img_convert_context == NULL)
 		{
 			printf("FFM_Encode: img_convert_context error\n");
@@ -455,7 +456,7 @@ void *FFM_Child_Thread (void *noargs)
 	
 	if (img_convert_context == NULL)
 	{
-		img_convert_context = ffm_sws_getContext(dwidth, dheight, PIX_FMT_RGB24, (int)ffm_video_width.value, (int)ffm_video_height.value, PIX_FMT_YUV420P, SWS_BICUBIC, NULL, NULL, NULL);
+		img_convert_context = ffm_sws_getContext(dwidth, dheight, AV_PIX_FMT_RGB24, (int)ffm_video_width.value, (int)ffm_video_height.value, AV_PIX_FMT_YUV420P, SWS_BICUBIC, NULL, NULL, NULL);
 		if (img_convert_context == NULL)
 		{
 			printf("error\n");
@@ -496,7 +497,7 @@ qbool FFM_Codec_Is_Usable_With_Outputformat(AVCodec *codec, AVOutputFormat *form
 	if (codec == NULL || format == NULL)
 		return false;
 
-	if (ffm_av_codec_get_id(format->codec_tag, ffm_av_codec_get_tag(format->codec_tag, codec->id)) != CODEC_ID_NONE)
+	if (ffm_av_codec_get_id(format->codec_tag, ffm_av_codec_get_tag(format->codec_tag, codec->id)) != AV_CODEC_ID_NONE)
 		return true;
 	return false;
 
@@ -597,7 +598,7 @@ void OnChangeffmvideo (cvar_t *var, char *value, qbool *cancel)
 		return;
 	}
 
-	if (p->type != CODEC_TYPE_VIDEO)
+	if (p->type != AVMEDIA_TYPE_VIDEO)
 	{
 		Com_Printf("%s is not a video codec\n", value);
 		Cvar_Set(var,"none");
@@ -634,7 +635,7 @@ void OnChangeffmaudio (cvar_t *var, char *value, qbool *cancel)
 		return;
 	}
 
-	if (p->type != CODEC_TYPE_AUDIO)
+	if (p->type != AVMEDIA_TYPE_AUDIO)
 	{
 		Cvar_Set(var,"none");
 		Com_Printf("%s is not a audio codec\n", value);
@@ -765,11 +766,11 @@ char *FFM_Codec_Type_Enum(int en)
 {
 	switch (en)
 	{
-		case CODEC_TYPE_UNKNOWN:
+		case AVMEDIA_TYPE_UNKNOWN:
 			return "UNKOWN Codec";
-		case CODEC_TYPE_VIDEO:
+		case AVMEDIA_TYPE_VIDEO:
 			return "Video Codec";
-		case CODEC_TYPE_AUDIO:
+		case AVMEDIA_TYPE_AUDIO:
 			return "Audio Codec";
 
 		default:
@@ -785,7 +786,7 @@ void FFM_List_Codecs_f (void)
 
 	while (p)
 	{
-		if (p->encode != NULL)
+		if (p->encode2 != NULL)
 		{
 			Com_Printf("%20s :",p->name);
 			Com_Printf("%s\n",FFM_Codec_Type_Enum(p->type));	
@@ -863,7 +864,7 @@ void FFM_Record_Start_f (void)
 		}
 
 		ffm->audio_stream->codec->codec_id	= ffm->audio_codec->id;
-		ffm->audio_stream->codec->codec_type	= CODEC_TYPE_AUDIO;
+		ffm->audio_stream->codec->codec_type	= AVMEDIA_TYPE_AUDIO;
 		ffm->audio_stream->codec->bit_rate	= 64000;//ffm_audio_bit_rate.value;
 		ffm->audio_stream->codec->sample_rate	= 44100;//ffm_audio_sample_rate.value;
 		ffm->audio_stream->codec->channels	= 2;//ffm_audio_channels.value;
@@ -924,8 +925,8 @@ void FFM_Record_Start_f (void)
 	ffm->video_codec_context->time_base.num	= 1;
 	ffm->video_codec_context->gop_size	= 10;
 	ffm->video_codec_context->max_b_frames	= 0;
-	ffm->video_codec_context->pix_fmt	= PIX_FMT_YUV420P;
-	ffm->video_codec_context->codec_type	= CODEC_TYPE_VIDEO;
+	ffm->video_codec_context->pix_fmt	= AV_PIX_FMT_YUV420P;
+	ffm->video_codec_context->codec_type	= AVMEDIA_TYPE_VIDEO;
 	ffm->video_codec_context->codec_id	= ffm->video_codec->id;
 
 	ffm->output_buffer_size = ffm_video_width.value * ffm_video_height.value * 4;
@@ -936,7 +937,7 @@ void FFM_Record_Start_f (void)
 		return;
 	}
 
-	ffm->picture_buffer = (uint8_t *) malloc((ffm_avpicture_get_size(PIX_FMT_YUV420P, ffm_video_width.value, ffm_video_height.value))*2); // no clue why the 2 fixes stuff... it shouldnt
+	ffm->picture_buffer = (uint8_t *) malloc((ffm_avpicture_get_size(AV_PIX_FMT_YUV420P, ffm_video_width.value, ffm_video_height.value))*2); // no clue why the 2 fixes stuff... it shouldnt
 
 	ffm->picture->data[0] = ffm->picture_buffer;
 	ffm->picture->data[1] = ffm->picture->data[0] + (int)(ffm_video_width.value * ffm_video_height.value);
@@ -947,9 +948,9 @@ void FFM_Record_Start_f (void)
 
 	ffm->output_buffer = malloc(ffm->output_buffer_size);
 
-	ffm_avpicture_fill((AVPicture *)ffm->picture, ffm->picture_buffer, PIX_FMT_YUV420P, ffm_video_width.value, ffm_video_height.value);
+	ffm_avpicture_fill((AVPicture *)ffm->picture, ffm->picture_buffer, AV_PIX_FMT_YUV420P, ffm_video_width.value, ffm_video_height.value);
 
-	ffm->gl_buffer = (uint8_t *) malloc((ffm_avpicture_get_size(PIX_FMT_RGB24, dwidth, dheight)));
+	ffm->gl_buffer = (uint8_t *) malloc((ffm_avpicture_get_size(AV_PIX_FMT_RGB24, dwidth, dheight)));
 
 	ffm->gl_picture->data[0] = ffm->gl_buffer;
 	ffm->gl_picture->data[1] = ffm->gl_picture->data[0] + dwidth * dheight ;
@@ -959,7 +960,7 @@ void FFM_Record_Start_f (void)
 	ffm->gl_picture->linesize[2] = dwidth /2;
 
 
-	ffm->gl_swap_buffer = (uint8_t *) malloc((ffm_avpicture_get_size(PIX_FMT_RGB24, dwidth, dheight)));
+	ffm->gl_swap_buffer = (uint8_t *) malloc((ffm_avpicture_get_size(AV_PIX_FMT_RGB24, dwidth, dheight)));
 
 
 	ffm_dump_format(ffm->format_context, 0, ffm->filename, 1);
@@ -977,7 +978,7 @@ void FFM_Record_Start_f (void)
 	
 	if (!(ffm->output_format->flags & AVFMT_NOFILE))
 	{
-		if (ffm_url_fopen(&ffm->format_context->pb, ffm->filename, URL_WRONLY) <0)
+		if (ffm_url_fopen(&ffm->format_context->pb, ffm->filename, O_WRONLY) <0)
 		{
 			Com_Printf("Could not open file %s\n", ffm->filename);
 			if (ffm->record_audio)
@@ -1124,7 +1125,7 @@ struct frames_list_s *FFM_Create_New_Frame (void)
 		memset(f, 0, sizeof(struct frames_list_s));
 	}
 
-	f->buffer =  (uint8_t *) malloc((ffm_avpicture_get_size(PIX_FMT_RGB24, dwidth, dheight)));
+	f->buffer =  (uint8_t *) malloc((ffm_avpicture_get_size(AV_PIX_FMT_RGB24, dwidth, dheight)));
 	
 	if (ffm->record_audio)
 		f->audio_buffer = (uint8_t *) malloc(44100*sizeof(uint8_t));

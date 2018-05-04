@@ -80,7 +80,7 @@ typedef struct mvd_menu_s {
 	double						max;
 	double						min;
 	double						**modifier;
-	double						restrict;
+	double						menrestrict;
 	cvar_t					*variable;
 	int						**intptr;
 	double					**floatptr;

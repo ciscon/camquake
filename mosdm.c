@@ -247,7 +247,7 @@ void MOSDM_NEW_UP(void){
 	}else if (activemenu->type == 1){
 		if (activemenu->intptr){
 			**activemenu->intptr = **activemenu->intptr +1;
-			if (activemenu->restrict)
+			if (activemenu->menrestrict)
 				if (**activemenu->intptr > activemenu->max)
 					**activemenu->intptr = activemenu->min;
 		}
@@ -264,7 +264,7 @@ void MOSDM_NEW_UP(void){
 	}else if (activemenu->type == 5){
 		Cvar_Set(activemenu->variable,va("%i",(int)!activemenu->variable->value));
 	}else if (activemenu->type == 6){
-		Cvar_Set(activemenu->variable,va("%f",activemenu->variable->value + activemenu->restrict));
+		Cvar_Set(activemenu->variable,va("%f",activemenu->variable->value + activemenu->menrestrict));
 	}else if (activemenu->type == 7){
 		**activemenu->vecptr = **activemenu->vecptr + activemenu->variable->value;
 		if(activemenu->function)
@@ -294,7 +294,7 @@ void MOSDM_NEW_DOWN(void){
 	}else if (activemenu->type == 1){
 		if (activemenu->intptr){
 			**activemenu->intptr = **activemenu->intptr - 1;
-			if (activemenu->restrict)
+			if (activemenu->menrestrict)
 				if (**activemenu->intptr < activemenu->min)
 					**activemenu->intptr = activemenu->max;
 		}
@@ -311,8 +311,8 @@ void MOSDM_NEW_DOWN(void){
 	}else if (activemenu->type == 5){
 		Cvar_Set(activemenu->variable,va("%i",(int)!activemenu->variable->value));
 	}else if (activemenu->type == 6){
-		Cvar_Set(activemenu->variable,va("%f",activemenu->variable->value - activemenu->restrict));
-		Com_Printf("%f\n",activemenu->restrict);
+		Cvar_Set(activemenu->variable,va("%f",activemenu->variable->value - activemenu->menrestrict));
+		Com_Printf("%f\n",activemenu->menrestrict);
 	}else if (activemenu->type == 7){
 		**activemenu->vecptr = **activemenu->vecptr - activemenu->variable->value;
 		if(activemenu->function)
@@ -383,7 +383,7 @@ void MOSDM_Check_Menus(void){
 	}
 }
 
-void MOSDM_NEW_ADD_MENU(char *pname,char *childname,char *identifier,int type,int **intptr,double **floatptr,char **charptr,float min,float max,double restrict, void *function, cvar_t *variable, char *command, double **modifier, vec_t **vector){
+void MOSDM_NEW_ADD_MENU(char *pname,char *childname,char *identifier,int type,int **intptr,double **floatptr,char **charptr,float min,float max,double menrestrict, void *function, cvar_t *variable, char *command, double **modifier, vec_t **vector){
 	int i ;
 	mvd_menu_t *child;
 	mvd_menu_t *parent;
@@ -437,7 +437,7 @@ void MOSDM_NEW_ADD_MENU(char *pname,char *childname,char *identifier,int type,in
 			child->type = type;
 			child->parent = parent;
 			child->function = function;
-			child->restrict = restrict;
+			child->menrestrict = menrestrict;
 			child->min	=	min;
 			child->max	=	max;
 			child->variable = variable;
@@ -472,12 +472,12 @@ void Cam_SetStop(void){
 	cameras[selected_cam].stoptime = cls.demotime - demostarttime;
 }
 void Cam_SetP(void){
-	VectorCopy(cl.frames[cl.validsequence & UPDATE_MASK].playerstate[cl.playernum].origin,cameras[selected_cam].ctrlpoints[(int) activemenu->restrict]);
+	VectorCopy(cl.frames[cl.validsequence & UPDATE_MASK].playerstate[cl.playernum].origin,cameras[selected_cam].ctrlpoints[(int) activemenu->menrestrict]);
 }
 void Cam_DelP(void){
-	cameras[selected_cam].ctrlpoints[(int) activemenu->restrict -1][0] = 0;
-	cameras[selected_cam].ctrlpoints[(int) activemenu->restrict -1][1] = 0;
-	cameras[selected_cam].ctrlpoints[(int) activemenu->restrict -1][2] = 0;
+	cameras[selected_cam].ctrlpoints[(int) activemenu->menrestrict -1][0] = 0;
+	cameras[selected_cam].ctrlpoints[(int) activemenu->menrestrict -1][1] = 0;
+	cameras[selected_cam].ctrlpoints[(int) activemenu->menrestrict -1][2] = 0;
 }
 
 void Cam_MIS(void){
@@ -562,12 +562,12 @@ void View_SetStop(void){
 	views[selected_view].stoptime = cls.demotime - demostarttime;
 }
 void View_SetP(void){
-	VectorCopy(cl.frames[cl.validsequence & UPDATE_MASK].playerstate[cl.playernum].origin,views[selected_view].ctrlpoints[(int) activemenu->restrict]);
+	VectorCopy(cl.frames[cl.validsequence & UPDATE_MASK].playerstate[cl.playernum].origin,views[selected_view].ctrlpoints[(int) activemenu->menrestrict]);
 }
 void View_DelP(void){
-	views[selected_view].ctrlpoints[(int) activemenu->restrict -1][0] = 0;
-	views[selected_view].ctrlpoints[(int) activemenu->restrict -1][1] = 0;
-	views[selected_view].ctrlpoints[(int) activemenu->restrict -1][0] = 0;
+	views[selected_view].ctrlpoints[(int) activemenu->menrestrict -1][0] = 0;
+	views[selected_view].ctrlpoints[(int) activemenu->menrestrict -1][1] = 0;
+	views[selected_view].ctrlpoints[(int) activemenu->menrestrict -1][0] = 0;
 }
 void View_MIS(void){
 	VectorJogi(views[selected_view].ctrlpoints[3], views[selected_view].ctrlpoints[0], views[selected_view].ctrlpoints[1],1/3);
@@ -646,7 +646,7 @@ void Set_Activepoint(void){
 	
 	compass_min = activemenu->min;
 	compass_max = activemenu->max;
-	compass_restrict = activemenu->restrict;
+	compass_restrict = activemenu->menrestrict;
 
 	compass_time = Sys_DoubleTime();
 }
@@ -1693,8 +1693,8 @@ void MOSDM_Cam_Track_Set(void){
 	else 
 		return;
 	
-	strcpy(current->track,cl.players[(int)activemenu->restrict].name);
-	VectorCopy(cl.frames[cl.validsequence & UPDATE_MASK].playerstate[(int)activemenu->restrict].origin,current->track_origin[1]);
+	strcpy(current->track,cl.players[(int)activemenu->menrestrict].name);
+	VectorCopy(cl.frames[cl.validsequence & UPDATE_MASK].playerstate[(int)activemenu->menrestrict].origin,current->track_origin[1]);
 
 }
 
@@ -1763,8 +1763,8 @@ void MOSDM_Cam_ETrack_Set(void){
 		return;
 /*	
 	strcpy(current->track,"entity");
-	strcpy(current->track_modelname,cl_visents.list[(int)activemenu->restrict].model->name);
-	VectorCopy(cl_visents.list[(int)activemenu->restrict].origin,current->track_origin[0]);
+	strcpy(current->track_modelname,cl_visents.list[(int)activemenu->menrestrict].model->name);
+	VectorCopy(cl_visents.list[(int)activemenu->menrestrict].origin,current->track_origin[0]);
 	etrack_time = Sys_DoubleTime();
 	etrack_active = (int)activemenu->max;
 */	

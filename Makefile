@@ -137,14 +137,22 @@ else
 LDFLAGS = -ggdb -lm -lpthread
 endif
 
-COMMON_LIBS = libs/$(LIB_PREFIX)/minizip.a libs/$(LIB_PREFIX)/libpng.a libs/$(LIB_PREFIX)/libz.a libs/$(LIB_PREFIX)/libpcre.a libs/$(LIB_PREFIX)/libexpat.a libs/$(LIB_PREFIX)/libtcl.a
-GL_LIBS = libs/$(LIB_PREFIX)/libjpeg.a
+#disabling static libraries
+#COMMON_LIBS = libs/$(LIB_PREFIX)/minizip.a libs/$(LIB_PREFIX)/libpng.a libs/$(LIB_PREFIX)/libz.a libs/$(LIB_PREFIX)/libpcre.a libs/$(LIB_PREFIX)/libexpat.a libs/$(LIB_PREFIX)/libtcl.a
+#GL_LIBS = libs/$(LIB_PREFIX)/libjpeg.a
+
+COMMON_LIBS =
+GL_LIBS =
+
+ifeq ($(OS),linux)
+INCLUDEBASE ?= /usr/include
+CFLAGS += -I${INCLUDEBASE}/freetype -I${INCLUDEBASE}/lua5.1
+LDFLAGS += -lXft -lfontconfig -lX11 -ldl -lexpat -lpng -ljpeg -lpcre -lminizip
+endif
 
 ifeq ($(OS),freebsd)
-X11BASE ?= /usr/X11R6
-LOCALBASE ?= /usr/local
-CFLAGS += -I$(X11BASE)/include -I$(LOCALBASE)/include
-LDFLAGS += -L$(X11BASE)/lib -L$(LOCALBASE)/lib
+CFLAGS += -I$(X11BASE)/include -I$(LOCALBASE)/include -I${X11BASE}/freetype
+LDFLAGS += -L$(X11BASE)/lib -L$(LOCALBASE)/lib -lXft -lfontconfig
 endif
 
 include Makefile.list
